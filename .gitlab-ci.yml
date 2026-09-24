@@ -1,0 +1,45 @@
+# GitLab CI/CD Pipeline for Flight-Management-System
+
+image: maven:3.9.4-eclipse-temurin-17
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .m2/repository
+
+stages:
+  - build
+  - deploy
+
+# Stage 1: Build & Package Mule 4 Application Artifact
+build_and_package:
+  stage: build
+  script:
+    - echo "Building MuleSoft 4 application package..."
+    - mvn clean package -DskipTests -Denv=dev
+  artifacts:
+    name: "flight-management-system-artifact"
+    paths:
+      - target/*.jar
+    expire_in: 1 week
+
+# Stage 2: Deploy to Anypoint CloudHub 2.0 (Manual or Automatic on main)
+deploy_cloudhub:
+  stage: deploy
+  only:
+    - main
+  when: manual
+  script:
+    - echo "Deploying application to Anypoint CloudHub 2.0..."
+    - |
+      mvn clean deploy -DmuleDeploy \
+        -Denv=prod \
+        -Dtarget="Cloudhub-US-East-1" \
+        -Danypoint.username="$ANYPOINT_USERNAME" \
+        -Danypoint.password="$ANYPOINT_PASSWORD" \
+        -Dapp.name="flight-management-system-prod" \
+        -Dencryption.key="$ENCRYPTION_KEY" \
+        -DskipTests
