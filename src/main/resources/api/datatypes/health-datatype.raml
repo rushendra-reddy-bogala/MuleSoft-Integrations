@@ -1,0 +1,25 @@
+#%RAML 1.0 DataType
+type: object
+description: Health check status response schema
+properties:
+  status:
+    type: string
+    required: true
+    enum: [UP, DOWN, DEGRADED]
+    example: "UP"
+  applicationName:
+    type: string
+    required: true
+    example: "Flight-Management-System"
+  environment:
+    type: string
+    required: true
+    example: "dev"
+  timestamp:
+    type: string
+    required: true
+    example: "2026-09-24T08:32:15Z"
+  databaseStatus:
+    type: string
+    required: true
+    example: "CONNECTED"

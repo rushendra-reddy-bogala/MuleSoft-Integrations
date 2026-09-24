@@ -1,0 +1,50 @@
+#%RAML 1.0 DataType
+type: object
+description: Represents a flight entity in the Flight Management System
+properties:
+  flightId:
+    type: string
+    required: true
+    maxLength: 20
+    example: "AI101"
+  airline:
+    type: string
+    required: true
+    maxLength: 100
+    example: "Air India"
+  source:
+    type: string
+    required: true
+    maxLength: 100
+    example: "Hyderabad"
+  destination:
+    type: string
+    required: true
+    maxLength: 100
+    example: "Delhi"
+  departureTime:
+    type: string
+    required: true
+    pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$"
+    example: "2026-10-01T10:00:00"
+  arrivalTime:
+    type: string
+    required: true
+    pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$"
+    example: "2026-10-01T12:30:00"
+  availableSeats:
+    type: integer
+    required: true
+    minimum: 0
+    example: 150
+  price:
+    type: number
+    required: true
+    minimum: 0
+    example: 5500.00
+  status:
+    type: string
+    required: false
+    enum: [Scheduled, Delayed, Cancelled, Completed, In-Flight]
+    default: "Scheduled"
+    example: "Scheduled"

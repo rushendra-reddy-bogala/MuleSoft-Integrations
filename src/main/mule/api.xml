@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+
+    <!-- Main Router Flow -->
+    <flow name="flight-management-api-main">
+        <http:listener config-ref="HTTP_Listener_config" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <apikit:router config-ref="flight-management-api-config" />
+
+        <error-handler ref="Global_Error_Handler" />
+    </flow>
+
+    <!-- Console Flow -->
+    <flow name="flight-management-api-console">
+        <http:listener config-ref="HTTP_Listener_config" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <apikit:console config-ref="flight-management-api-config" />
+
+        <error-handler ref="Global_Error_Handler" />
+    </flow>
+
+    <!-- Health Check Flow -->
+    <flow name="get:\health:flight-management-api-config">
+        <logger level="INFO" doc:name="Log Health Request" 
+                message='#[output application/json --- { timestamp: now(), message: "Checking service health" }]' />
+
+        <db:select config-ref="Database_Config" doc:name="Ping Database">
+            <db:sql><![CDATA[SELECT 1 AS status]]></db:sql>
+        </db:select>
+
+        <set-variable value="200" doc:name="Set HTTP Status 200" variableName="httpStatus" />
+
+        <ee:transform doc:name="Format Health Response">
+            <ee:message>
+                <ee:set-payload resource="dwl/health-response.dwl" />
+            </ee:message>
+        </ee:transform>
+    </flow>
+
+</mule>

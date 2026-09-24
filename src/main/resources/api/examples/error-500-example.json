@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-09-24T08:32:15Z",
+  "statusCode": 500,
+  "errorType": "DB:QUERY_EXECUTION",
+  "message": "Internal server error occurred while processing database query",
+  "details": "Database connectivity or query execution issue.",
+  "path": "/api/flights"
+}

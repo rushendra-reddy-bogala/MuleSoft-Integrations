@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-09-24T08:32:15Z",
+  "statusCode": 404,
+  "errorType": "FLIGHT:NOT_FOUND",
+  "message": "Flight with ID AI101 not found",
+  "details": "The requested flight record does not exist in the database.",
+  "path": "/api/flights/AI101"
+}

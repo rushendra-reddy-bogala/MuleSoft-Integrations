@@ -1,0 +1,11 @@
+{
+  "flightId": "UK303",
+  "airline": "Vistara",
+  "source": "Delhi",
+  "destination": "Hyderabad",
+  "departureTime": "2026-10-02T08:30:00",
+  "arrivalTime": "2026-10-02T11:00:00",
+  "availableSeats": 120,
+  "price": 6800.00,
+  "status": "Scheduled"
+}

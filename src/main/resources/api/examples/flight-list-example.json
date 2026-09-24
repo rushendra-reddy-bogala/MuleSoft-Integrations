@@ -1,0 +1,24 @@
+[
+  {
+    "flightId": "AI101",
+    "airline": "Air India",
+    "source": "Hyderabad",
+    "destination": "Delhi",
+    "departureTime": "2026-10-01T10:00:00",
+    "arrivalTime": "2026-10-01T12:30:00",
+    "availableSeats": 150,
+    "price": 5500.00,
+    "status": "Scheduled"
+  },
+  {
+    "flightId": "6E202",
+    "airline": "IndiGo",
+    "source": "Bangalore",
+    "destination": "Mumbai",
+    "departureTime": "2026-10-01T14:00:00",
+    "arrivalTime": "2026-10-01T15:45:00",
+    "availableSeats": 180,
+    "price": 4200.00,
+    "status": "Scheduled"
+  }
+]

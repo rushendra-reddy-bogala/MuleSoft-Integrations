@@ -1,0 +1,28 @@
+#%RAML 1.0 DataType
+type: object
+description: Standardized REST error response schema
+properties:
+  timestamp:
+    type: string
+    required: true
+    example: "2026-09-24T08:32:15Z"
+  statusCode:
+    type: integer
+    required: true
+    example: 404
+  errorType:
+    type: string
+    required: true
+    example: "FLIGHT:NOT_FOUND"
+  message:
+    type: string
+    required: true
+    example: "Flight with ID AI101 not found"
+  details:
+    type: string
+    required: false
+    example: "The requested flight record does not exist in the database."
+  path:
+    type: string
+    required: true
+    example: "/api/flights/AI101"

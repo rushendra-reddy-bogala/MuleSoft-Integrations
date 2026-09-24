@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+      xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+        http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+
+    <!-- POST /flights Implementation -->
+    <flow name="post:\flights:application\json:flight-management-api-config">
+        <logger level="INFO" doc:name="Log POST Request" 
+                message='#[output application/json --- { timestamp: now(), message: "Processing POST /flights request", payload: payload }]' />
+
+        <!-- Mandatory Field Validations -->
+        <validation:is-not-blank-string doc:name="Validate flightId mandatory" 
+                                       config-ref="Validation_Config" 
+                                       value="#[payload.flightId]" 
+                                       message="Mandatory field 'flightId' is missing or blank." />
+        <validation:is-not-blank-string doc:name="Validate airline mandatory" 
+                                       config-ref="Validation_Config" 
+                                       value="#[payload.airline]" 
+                                       message="Mandatory field 'airline' is missing or blank." />
+        <validation:is-not-blank-string doc:name="Validate source mandatory" 
+                                       config-ref="Validation_Config" 
+                                       value="#[payload.source]" 
+                                       message="Mandatory field 'source' is missing or blank." />
+        <validation:is-not-blank-string doc:name="Validate destination mandatory" 
+                                       config-ref="Validation_Config" 
+                                       value="#[payload.destination]" 
+                                       message="Mandatory field 'destination' is missing or blank." />
+
+        <set-variable value="#[payload.flightId]" doc:name="Set flightId Variable" variableName="flightId" />
+
+        <ee:transform doc:name="Map Request to DB Insert Parameters">
+            <ee:message>
+                <ee:set-payload resource="dwl/map-flight-to-db.dwl" />
+            </ee:message>
+        </ee:transform>
+
+        <db:insert config-ref="Database_Config" doc:name="Insert Flight Record">
+            <db:sql><![CDATA[
+                INSERT INTO flights (flight_id, airline, source, destination, departure_time, arrival_time, available_seats, price, status)
+                VALUES (:flightId, :airline, :source, :destination, :departureTime, :arrivalTime, :availableSeats, :price, :status)
+            ]]></db:sql>
+            <db:input-parameters><![CDATA[#[payload]]]></db:input-parameters>
+        </db:insert>
+
+        <set-variable value="201" doc:name="Set HTTP Status 201" variableName="httpStatus" />
+        <ee:transform doc:name="Format Create Response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Flight " ++ vars.flightId ++ " created successfully.",
+	flightId: vars.flightId
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <logger level="INFO" doc:name="Log POST Success" 
+                message='#[output application/json --- { timestamp: now(), message: "Flight created successfully", flightId: vars.flightId }]' />
+    </flow>
+
+    <!-- GET /flights Implementation -->
+    <flow name="get:\flights:flight-management-api-config">
+        <logger level="INFO" doc:name="Log GET All Request" 
+                message='#[output application/json --- { timestamp: now(), message: "Retrieving all flight records" }]' />
+
+        <db:select config-ref="Database_Config" doc:name="Select All Flights">
+            <db:sql><![CDATA[
+                SELECT flight_id, airline, source, destination, departure_time, arrival_time, available_seats, price, status
+                FROM flights
+                ORDER BY departure_time ASC
+            ]]></db:sql>
+        </db:select>
+
+        <ee:transform doc:name="Map DB Result to Flight List">
+            <ee:message>
+                <ee:set-payload resource="dwl/map-db-to-flight.dwl" />
+            </ee:message>
+        </ee:transform>
+
+        <logger level="INFO" doc:name="Log GET All Success" 
+                message='#[output application/json --- { timestamp: now(), message: "Retrieved flights", count: sizeOf(payload) }]' />
+    </flow>
+
+    <!-- GET /flights/{flightId} Implementation -->
+    <flow name="get:\flights\(flightId):flight-management-api-config">
+        <set-variable value="#[attributes.uriParams.flightId]" doc:name="Set flightId Variable" variableName="flightId" />
+
+        <logger level="INFO" doc:name="Log GET by ID Request" 
+                message='#[output application/json --- { timestamp: now(), message: "Fetching flight details", flightId: vars.flightId }]' />
+
+        <validation:is-not-blank-string doc:name="Validate flightId URI Param" 
+                                       config-ref="Validation_Config" 
+                                       value="#[vars.flightId]" 
+                                       message="URI parameter 'flightId' cannot be empty." />
+
+        <db:select config-ref="Database_Config" doc:name="Select Flight by ID">
+            <db:sql><![CDATA[
+                SELECT flight_id, airline, source, destination, departure_time, arrival_time, available_seats, price, status
+                FROM flights
+                WHERE flight_id = :flightId
+            ]]></db:sql>
+            <db:input-parameters><![CDATA[#{ flightId : vars.flightId }]]></db:input-parameters>
+        </db:select>
+
+        <choice doc:name="Choice Check If Flight Found">
+            <when expression="#[isEmpty(payload)]">
+                <set-variable value="404" doc:name="Set HTTP Status 404" variableName="httpStatus" />
+                <set-variable value="#['Flight with ID ' ++ vars.flightId ++ ' not found']" doc:name="Set Error Message" variableName="errorMessage" />
+                <raise-error doc:name="Raise FLIGHT:NOT_FOUND" type="FLIGHT:NOT_FOUND" description="Requested flight record does not exist in database." />
+            </when>
+            <otherwise>
+                <ee:transform doc:name="Map Single DB Result to Flight Object">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var list = payload map (row) -> {
+	flightId: row.flight_id default "",
+	airline: row.airline default "",
+	source: row.source default "",
+	destination: row.destination default "",
+	departureTime: (row.departure_time as String {format: "yyyy-MM-dd'T'HH:mm:ss"}) default "",
+	arrivalTime: (row.arrival_time as String {format: "yyyy-MM-dd'T'HH:mm:ss"}) default "",
+	availableSeats: row.available_seats default 0,
+	price: row.price default 0.00,
+	status: row.status default "Scheduled"
+}
+---
+list[0]]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+
+        <logger level="INFO" doc:name="Log GET by ID Success" 
+                message='#[output application/json --- { timestamp: now(), message: "Successfully retrieved flight", flightId: vars.flightId }]' />
+    </flow>
+
+    <!-- PUT /flights/{flightId} Implementation -->
+    <flow name="put:\flights\(flightId):application\json:flight-management-api-config">
+        <set-variable value="#[attributes.uriParams.flightId]" doc:name="Set flightId Variable" variableName="flightId" />
+
+        <logger level="INFO" doc:name="Log PUT Request" 
+                message='#[output application/json --- { timestamp: now(), message: "Updating flight record", flightId: vars.flightId }]' />
+
+        <!-- Mandatory Field Validations -->
+        <validation:is-not-blank-string doc:name="Validate flightId URI Param" 
+                                       config-ref="Validation_Config" 
+                                       value="#[vars.flightId]" 
+                                       message="URI parameter 'flightId' cannot be empty." />
+        <validation:is-not-blank-string doc:name="Validate airline mandatory" 
+                                       config-ref="Validation_Config" 
+                                       value="#[payload.airline]" 
+                                       message="Mandatory field 'airline' is missing or blank." />
+        <validation:is-not-blank-string doc:name="Validate source mandatory" 
+                                       config-ref="Validation_Config" 
+                                       value="#[payload.source]" 
+                                       message="Mandatory field 'source' is missing or blank." />
+        <validation:is-not-blank-string doc:name="Validate destination mandatory" 
+                                       config-ref="Validation_Config" 
+                                       value="#[payload.destination]" 
+                                       message="Mandatory field 'destination' is missing or blank." />
+
+        <db:select config-ref="Database_Config" doc:name="Check Flight Exists">
+            <db:sql><![CDATA[SELECT flight_id FROM flights WHERE flight_id = :flightId]]></db:sql>
+            <db:input-parameters><![CDATA[#{ flightId : vars.flightId }]]></db:input-parameters>
+        </db:select>
+
+        <choice doc:name="Choice Check Flight Existence">
+            <when expression="#[isEmpty(payload)]">
+                <set-variable value="404" doc:name="Set HTTP Status 404" variableName="httpStatus" />
+                <set-variable value="#['Flight with ID ' ++ vars.flightId ++ ' not found']" doc:name="Set Error Message" variableName="errorMessage" />
+                <raise-error doc:name="Raise FLIGHT:NOT_FOUND" type="FLIGHT:NOT_FOUND" description="Cannot update flight because it does not exist." />
+            </when>
+            <otherwise>
+                <ee:transform doc:name="Map Request to Update DB Parameters">
+                    <ee:message>
+                        <ee:set-payload resource="dwl/map-update-flight-to-db.dwl" />
+                    </ee:message>
+                </ee:transform>
+
+                <db:update config-ref="Database_Config" doc:name="Update Flight Record">
+                    <db:sql><![CDATA[
+                        UPDATE flights 
+                        SET airline = :airline, 
+                            source = :source, 
+                            destination = :destination, 
+                            departure_time = :departureTime, 
+                            arrival_time = :arrivalTime, 
+                            available_seats = :availableSeats, 
+                            price = :price, 
+                            status = :status 
+                        WHERE flight_id = :flightId
+                    ]]></db:sql>
+                    <db:input-parameters><![CDATA[#[payload]]]></db:input-parameters>
+                </db:update>
+            </otherwise>
+        </choice>
+
+        <set-variable value="200" doc:name="Set HTTP Status 200" variableName="httpStatus" />
+        <ee:transform doc:name="Format Update Response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Flight " ++ vars.flightId ++ " updated successfully.",
+	flightId: vars.flightId
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <logger level="INFO" doc:name="Log PUT Success" 
+                message='#[output application/json --- { timestamp: now(), message: "Flight updated successfully", flightId: vars.flightId }]' />
+    </flow>
+
+    <!-- DELETE /flights/{flightId} Implementation -->
+    <flow name="delete:\flights\(flightId):flight-management-api-config">
+        <set-variable value="#[attributes.uriParams.flightId]" doc:name="Set flightId Variable" variableName="flightId" />
+
+        <logger level="INFO" doc:name="Log DELETE Request" 
+                message='#[output application/json --- { timestamp: now(), message: "Deleting flight record", flightId: vars.flightId }]' />
+
+        <validation:is-not-blank-string doc:name="Validate flightId URI Param" 
+                                       config-ref="Validation_Config" 
+                                       value="#[vars.flightId]" 
+                                       message="URI parameter 'flightId' cannot be empty." />
+
+        <db:delete config-ref="Database_Config" doc:name="Delete Flight Record">
+            <db:sql><![CDATA[DELETE FROM flights WHERE flight_id = :flightId]]></db:sql>
+            <db:input-parameters><![CDATA[#{ flightId : vars.flightId }]]></db:input-parameters>
+        </db:delete>
+
+        <choice doc:name="Choice Check If Record Was Deleted">
+            <when expression="#[payload == 0]">
+                <set-variable value="404" doc:name="Set HTTP Status 404" variableName="httpStatus" />
+                <set-variable value="#['Flight with ID ' ++ vars.flightId ++ ' not found']" doc:name="Set Error Message" variableName="errorMessage" />
+                <raise-error doc:name="Raise FLIGHT:NOT_FOUND" type="FLIGHT:NOT_FOUND" description="Cannot delete flight because it does not exist." />
+            </when>
+            <otherwise>
+                <set-variable value="200" doc:name="Set HTTP Status 200" variableName="httpStatus" />
+                <ee:transform doc:name="Format Delete Response">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Flight " ++ vars.flightId ++ " deleted successfully.",
+	flightId: vars.flightId
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+
+        <logger level="INFO" doc:name="Log DELETE Success" 
+                message='#[output application/json --- { timestamp: now(), message: "Flight deleted successfully", flightId: vars.flightId }]' />
+    </flow>
+
+    <!-- GET /flights/source/{city} Implementation -->
+    <flow name="get:\flights\source\(city):flight-management-api-config">
+        <set-variable value="#[attributes.uriParams.city]" doc:name="Set Source City Variable" variableName="sourceCity" />
+
+        <logger level="INFO" doc:name="Log GET by Source Request" 
+                message='#[output application/json --- { timestamp: now(), message: "Searching flights by source city", sourceCity: vars.sourceCity }]' />
+
+        <validation:is-not-blank-string doc:name="Validate city URI Param" 
+                                       config-ref="Validation_Config" 
+                                       value="#[vars.sourceCity]" 
+                                       message="URI parameter 'city' cannot be empty." />
+
+        <db:select config-ref="Database_Config" doc:name="Select Flights by Source City">
+            <db:sql><![CDATA[
+                SELECT flight_id, airline, source, destination, departure_time, arrival_time, available_seats, price, status
+                FROM flights
+                WHERE LOWER(source) = LOWER(:sourceCity)
+                ORDER BY departure_time ASC
+            ]]></db:sql>
+            <db:input-parameters><![CDATA[#{ sourceCity : vars.sourceCity }]]></db:input-parameters>
+        </db:select>
+
+        <ee:transform doc:name="Map DB Result to Flight List">
+            <ee:message>
+                <ee:set-payload resource="dwl/map-db-to-flight.dwl" />
+            </ee:message>
+        </ee:transform>
+
+        <logger level="INFO" doc:name="Log GET by Source Success" 
+                message='#[output application/json --- { timestamp: now(), message: "Found flights by source city", count: sizeOf(payload) }]' />
+    </flow>
+
+    <!-- GET /flights/destination/{city} Implementation -->
+    <flow name="get:\flights\destination\(city):flight-management-api-config">
+        <set-variable value="#[attributes.uriParams.city]" doc:name="Set Destination City Variable" variableName="destCity" />
+
+        <logger level="INFO" doc:name="Log GET by Destination Request" 
+                message='#[output application/json --- { timestamp: now(), message: "Searching flights by destination city", destinationCity: vars.destCity }]' />
+
+        <validation:is-not-blank-string doc:name="Validate city URI Param" 
+                                       config-ref="Validation_Config" 
+                                       value="#[vars.destCity]" 
+                                       message="URI parameter 'city' cannot be empty." />
+
+        <db:select config-ref="Database_Config" doc:name="Select Flights by Destination City">
+            <db:sql><![CDATA[
+                SELECT flight_id, airline, source, destination, departure_time, arrival_time, available_seats, price, status
+                FROM flights
+                WHERE LOWER(destination) = LOWER(:destCity)
+                ORDER BY departure_time ASC
+            ]]></db:sql>
+            <db:input-parameters><![CDATA[#{ destCity : vars.destCity }]]></db:input-parameters>
+        </db:select>
+
+        <ee:transform doc:name="Map DB Result to Flight List">
+            <ee:message>
+                <ee:set-payload resource="dwl/map-db-to-flight.dwl" />
+            </ee:message>
+        </ee:transform>
+
+        <logger level="INFO" doc:name="Log GET by Destination Success" 
+                message='#[output application/json --- { timestamp: now(), message: "Found flights by destination city", count: sizeOf(payload) }]' />
+    </flow>
+
+</mule>

@@ -1,0 +1,241 @@
+#%RAML 1.0
+title: Flight Management System API
+version: v1
+mediaType: [ application/json ]
+protocols: [ HTTP, HTTPS ]
+description: RESTful MuleSoft 4 application managing flight records backed by MySQL database.
+
+types:
+  Flight: !include datatypes/flight-datatype.raml
+  ErrorResponse: !include datatypes/error-datatype.raml
+  HealthStatus: !include datatypes/health-datatype.raml
+
+/flights:
+  post:
+    displayName: Create Flight
+    description: Create a new flight record in the system
+    body:
+      application/json:
+        type: Flight
+        example: !include examples/flight-post-request-example.json
+    responses:
+      201:
+        description: Flight created successfully
+        body:
+          application/json:
+            type: object
+            properties:
+              message: string
+              flightId: string
+            example:
+              message: "Flight AI101 created successfully."
+              flightId: "AI101"
+      400:
+        description: Bad request - Missing mandatory fields or schema validation failure
+        body:
+          application/json:
+            type: ErrorResponse
+            example: !include examples/error-400-example.json
+      409:
+        description: Conflict - Flight ID already exists
+        body:
+          application/json:
+            type: ErrorResponse
+            example:
+              timestamp: "2026-09-24T08:32:15Z"
+              statusCode: 409
+              errorType: "FLIGHT:DUPLICATE_ID"
+              message: "Flight ID AI101 already exists."
+              details: "Duplicate entry for primary key flight_id."
+              path: "/api/flights"
+      500:
+        description: Internal Server Error
+        body:
+          application/json:
+            type: ErrorResponse
+            example: !include examples/error-500-example.json
+
+  get:
+    displayName: Get All Flights
+    description: Retrieve a list of all flight records
+    responses:
+      200:
+        description: Successfully retrieved list of flights
+        body:
+          application/json:
+            type: Flight[]
+            example: !include examples/flight-list-example.json
+      500:
+        description: Internal Server Error
+        body:
+          application/json:
+            type: ErrorResponse
+            example: !include examples/error-500-example.json
+
+  /{flightId}:
+    uriParameters:
+      flightId:
+        type: string
+        required: true
+        description: Unique Flight Identifier
+        example: "AI101"
+
+    get:
+      displayName: Get Flight by ID
+      description: Retrieve details for a specific flight by flightId
+      responses:
+        200:
+          description: Flight details retrieved successfully
+          body:
+            application/json:
+              type: Flight
+              example: !include examples/flight-example.json
+        404:
+          description: Flight not found
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-404-example.json
+        500:
+          description: Internal Server Error
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-500-example.json
+
+    put:
+      displayName: Update Flight
+      description: Update an existing flight record by flightId
+      body:
+        application/json:
+          type: Flight
+          example: !include examples/flight-example.json
+      responses:
+        200:
+          description: Flight updated successfully
+          body:
+            application/json:
+              type: object
+              properties:
+                message: string
+                flightId: string
+              example:
+                message: "Flight AI101 updated successfully."
+                flightId: "AI101"
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-400-example.json
+        404:
+          description: Flight not found
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-404-example.json
+        500:
+          description: Internal Server Error
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-500-example.json
+
+    delete:
+      displayName: Delete Flight
+      description: Delete a flight record from the system by flightId
+      responses:
+        200:
+          description: Flight deleted successfully
+          body:
+            application/json:
+              type: object
+              properties:
+                message: string
+                flightId: string
+              example:
+                message: "Flight AI101 deleted successfully."
+                flightId: "AI101"
+        404:
+          description: Flight not found
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-404-example.json
+        500:
+          description: Internal Server Error
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-500-example.json
+
+  /source/{city}:
+    uriParameters:
+      city:
+        type: string
+        required: true
+        description: Source city name
+        example: "Hyderabad"
+    get:
+      displayName: Get Flights by Source City
+      description: Retrieve all flights originating from a specific source city
+      responses:
+        200:
+          description: List of flights from source city
+          body:
+            application/json:
+              type: Flight[]
+              example: !include examples/flight-list-example.json
+        500:
+          description: Internal Server Error
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-500-example.json
+
+  /destination/{city}:
+    uriParameters:
+      city:
+        type: string
+        required: true
+        description: Destination city name
+        example: "Delhi"
+    get:
+      displayName: Get Flights by Destination City
+      description: Retrieve all flights arriving at a specific destination city
+      responses:
+        200:
+          description: List of flights to destination city
+          body:
+            application/json:
+              type: Flight[]
+              example: !include examples/flight-list-example.json
+        500:
+          description: Internal Server Error
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-500-example.json
+
+/health:
+  get:
+    displayName: Health Check
+    description: Health status check endpoint for monitoring application & database status
+    responses:
+      200:
+        description: Application is healthy
+        body:
+          application/json:
+            type: HealthStatus
+            example: !include examples/health-example.json
+      503:
+        description: Application or database is unhealthy
+        body:
+          application/json:
+            type: HealthStatus
+            example:
+              status: "DOWN"
+              applicationName: "Flight-Management-System"
+              environment: "dev"
+              timestamp: "2026-09-24T08:32:15Z"
+              databaseStatus: "DISCONNECTED"

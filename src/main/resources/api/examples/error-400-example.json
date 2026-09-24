@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-09-24T08:32:15Z",
+  "statusCode": 400,
+  "errorType": "APIKIT:BAD_REQUEST",
+  "message": "Invalid request payload or mandatory field missing",
+  "details": "Field 'airline' is required and cannot be empty.",
+  "path": "/api/flights"
+}

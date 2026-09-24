@@ -1,0 +1,10 @@
+{
+  "airline": "Air India",
+  "source": "Hyderabad",
+  "destination": "Delhi",
+  "departureTime": "2026-10-01T11:00:00",
+  "arrivalTime": "2026-10-01T13:30:00",
+  "availableSeats": 140,
+  "price": 5800.00,
+  "status": "Delayed"
+}

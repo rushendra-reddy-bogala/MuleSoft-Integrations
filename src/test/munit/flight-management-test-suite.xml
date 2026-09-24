@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+
+    <munit:config name="flight-management-test-suite.xml" />
+
+    <!-- Test GET /flights -->
+    <munit:test name="test-get-all-flights-success" description="Test GET /flights returns list of flights">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:attribute attributeName="doc:name" whereValue="Select All Flights" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value='#[ [{ "flight_id": "AI101", "airline": "Air India", "source": "Hyderabad", "destination": "Delhi", "departure_time": "2026-10-01T10:00:00", "arrival_time": "2026-10-01T12:30:00", "available_seats": 150, "price": 5500.00, "status": "Scheduled" }] ]' mediaType="application/java" />
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <flow-ref doc:name="Flow Ref get:\flights" name="get:\flights:flight-management-api-config" />
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that expression="#[sizeOf(payload)]" is="#[munit-tools:equalTo(1)]" message="Expected 1 flight in response" />
+            <munit-tools:assert-that expression="#[payload[0].flightId]" is="#[munit-tools:equalTo('AI101')]" message="Expected flightId AI101" />
+        </munit:validation>
+    </munit:test>
+
+    <!-- Test POST /flights -->
+    <munit:test name="test-post-flight-success" description="Test POST /flights creates a new flight">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:insert">
+                <munit-tools:with-attributes>
+                    <munit-tools:attribute attributeName="doc:name" whereValue="Insert Flight Record" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value="#[1]" />
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <munit:set-event>
+                <munit:payload value='{ "flightId": "UK303", "airline": "Vistara", "source": "Delhi", "destination": "Hyderabad", "departureTime": "2026-10-02T08:30:00", "arrivalTime": "2026-10-02T11:00:00", "availableSeats": 120, "price": 6800.00, "status": "Scheduled" }' mediaType="application/json" />
+            </munit:set-event>
+            <flow-ref doc:name="Flow Ref post:\flights" name="post:\flights:application\json:flight-management-api-config" />
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that expression="#[payload.flightId]" is="#[munit-tools:equalTo('UK303')]" message="Expected flightId UK303" />
+            <munit-tools:assert-that expression="#[vars.httpStatus]" is="#[munit-tools:equalTo(201)]" message="Expected HTTP status 201" />
+        </munit:validation>
+    </munit:test>
+
+    <!-- Test GET /flights/{flightId} Found -->
+    <munit:test name="test-get-flight-by-id-success" description="Test GET /flights/{flightId} returns single flight">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:attribute attributeName="doc:name" whereValue="Select Flight by ID" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value='#[ [{ "flight_id": "AI101", "airline": "Air India", "source": "Hyderabad", "destination": "Delhi", "departure_time": "2026-10-01T10:00:00", "arrival_time": "2026-10-01T12:30:00", "available_seats": 150, "price": 5500.00, "status": "Scheduled" }] ]' mediaType="application/java" />
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <munit:set-event>
+                <munit:attributes value="#[{ uriParams : { flightId : 'AI101' } }]" />
+            </munit:set-event>
+            <flow-ref doc:name="Flow Ref get:\flights\(flightId)" name="get:\flights\(flightId):flight-management-api-config" />
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that expression="#[payload.flightId]" is="#[munit-tools:equalTo('AI101')]" message="Expected flightId AI101" />
+            <munit-tools:assert-that expression="#[payload.airline]" is="#[munit-tools:equalTo('Air India')]" message="Expected Air India" />
+        </munit:validation>
+    </munit:test>
+
+    <!-- Test DELETE /flights/{flightId} Success -->
+    <munit:test name="test-delete-flight-success" description="Test DELETE /flights/{flightId} deletes existing flight">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:delete">
+                <munit-tools:with-attributes>
+                    <munit-tools:attribute attributeName="doc:name" whereValue="Delete Flight Record" />
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value="#[1]" />
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <munit:set-event>
+                <munit:attributes value="#[{ uriParams : { flightId : 'AI101' } }]" />
+            </munit:set-event>
+            <flow-ref doc:name="Flow Ref delete:\flights\(flightId)" name="delete:\flights\(flightId):flight-management-api-config" />
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that expression="#[payload.flightId]" is="#[munit-tools:equalTo('AI101')]" message="Expected flightId AI101" />
+            <munit-tools:assert-that expression="#[vars.httpStatus]" is="#[munit-tools:equalTo(200)]" message="Expected HTTP status 200" />
+        </munit:validation>
+    </munit:test>
+
+</mule>

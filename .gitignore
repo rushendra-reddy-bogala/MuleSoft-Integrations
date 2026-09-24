@@ -1,0 +1,19 @@
+# MuleSoft / Maven ignore rules
+target/
+*.log
+.mvn/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.DS_Store
+.mule/
+__pycache__/
+*.db
+*.sqlite
+*.tmp
+*.bak
+
+# Sensitive config overrides
+src/main/resources/config/config-local.yaml

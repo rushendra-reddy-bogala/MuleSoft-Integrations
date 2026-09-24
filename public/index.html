@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyPulse | Flight Experience Portal</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <!-- Background Animated Gradient Orbs -->
+    <div class="gradient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-plane-departure"></i>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title">SkyPulse</span>
+                    <span class="brand-subtitle">Flight Experience Portal</span>
+                </div>
+            </div>
+
+            <div class="api-status-pill" id="apiStatusPill">
+                <span class="status-dot online"></span>
+                <span class="status-text">System API: <strong id="apiStatusText">Checking...</strong></span>
+                <span class="ping-badge" id="apiPingText">-- ms</span>
+            </div>
+
+            <div class="nav-actions">
+                <button class="btn btn-secondary" id="btnRefresh" title="Refresh Data">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>Refresh</span>
+                </button>
+                <button class="btn btn-primary" id="btnOpenAddModal">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add New Flight</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="main-container">
+        <!-- Hero Metrics Dashboard -->
+        <section class="metrics-grid">
+            <div class="metric-card glass">
+                <div class="metric-icon blue">
+                    <i class="fa-solid fa-plane"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Total Scheduled Flights</span>
+                    <h2 class="metric-value" id="metricTotalFlights">0</h2>
+                </div>
+            </div>
+
+            <div class="metric-card glass">
+                <div class="metric-icon green">
+                    <i class="fa-solid fa-chair"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Available Seats</span>
+                    <h2 class="metric-value" id="metricTotalSeats">0</h2>
+                </div>
+            </div>
+
+            <div class="metric-card glass">
+                <div class="metric-icon purple">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">Avg Ticket Price</span>
+                    <h2 class="metric-value" id="metricAvgPrice">₹0</h2>
+                </div>
+            </div>
+
+            <div class="metric-card glass">
+                <div class="metric-icon orange">
+                    <i class="fa-solid fa-network-wired"></i>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-label">System API Endpoint</span>
+                    <h2 class="metric-value small">localhost:8081</h2>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search & Filtering Toolbar -->
+        <section class="toolbar-card glass">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Search by Flight ID, Airline, Source, or Destination...">
+                <button class="clear-btn" id="btnClearSearch" style="display: none;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="filter-group">
+                <div class="select-wrapper">
+                    <i class="fa-solid fa-plane-departure select-icon"></i>
+                    <select id="sourceFilter">
+                        <option value="">All Source Cities</option>
+                    </select>
+                </div>
+
+                <div class="select-wrapper">
+                    <i class="fa-solid fa-plane-arrival select-icon"></i>
+                    <select id="destFilter">
+                        <option value="">All Destinations</option>
+                    </select>
+                </div>
+
+                <div class="status-tabs" id="statusFilterTabs">
+                    <button class="tab-btn active" data-status="ALL">All</button>
+                    <button class="tab-btn" data-status="Scheduled">Scheduled</button>
+                    <button class="tab-btn" data-status="Boarding">Boarding</button>
+                    <button class="tab-btn" data-status="Delayed">Delayed</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Flight Cards View Section -->
+        <section class="flights-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Flight Schedules</span>
+                    <span class="badge-count" id="flightCountBadge">0</span>
+                </h3>
+
+                <div class="view-toggle">
+                    <button class="view-btn active" id="viewGridBtn" title="Grid View">
+                        <i class="fa-solid fa-grip"></i>
+                    </button>
+                    <button class="view-btn" id="viewTableBtn" title="Table View">
+                        <i class="fa-solid fa-list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner State -->
+            <div class="loading-state" id="loadingState">
+                <div class="spinner"></div>
+                <p>Connecting to MuleSoft System API...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state glass" id="emptyState" style="display: none;">
+                <i class="fa-solid fa-plane-slash empty-icon"></i>
+                <h3>No Flights Found</h3>
+                <p>No flight schedules matched your search filters.</p>
+                <button class="btn btn-secondary" id="btnResetFilters">Reset Filters</button>
+            </div>
+
+            <!-- Cards Grid Layout -->
+            <div class="flights-grid" id="flightsGrid"></div>
+
+            <!-- Table Layout -->
+            <div class="table-container glass" id="flightsTableContainer" style="display: none;">
+                <table class="flights-table">
+                    <thead>
+                        <tr>
+                            <th>Flight ID</th>
+                            <th>Airline</th>
+                            <th>Route</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Seats</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flightsTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add / Edit Flight Modal -->
+    <div class="modal-overlay" id="flightModal">
+        <div class="modal-card glass">
+            <div class="modal-header">
+                <h3 id="modalTitle">
+                    <i class="fa-solid fa-plane-circle-plus"></i>
+                    <span>Add New Flight</span>
+                </h3>
+                <button class="close-modal-btn" id="btnCloseModal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="flightForm" class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="inputFlightId">Flight ID <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-barcode"></i>
+                            <input type="text" id="inputFlightId" placeholder="e.g. AI101, 6E202" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputAirline">Airline <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-building"></i>
+                            <input type="text" id="inputAirline" placeholder="e.g. Air India, IndiGo" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputSource">Source City <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-plane-departure"></i>
+                            <input type="text" id="inputSource" placeholder="e.g. Hyderabad" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputDestination">Destination City <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-plane-arrival"></i>
+                            <input type="text" id="inputDestination" placeholder="e.g. Delhi" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputDepartureTime">Departure Time <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-clock"></i>
+                            <input type="datetime-local" id="inputDepartureTime" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputArrivalTime">Arrival Time <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-clock"></i>
+                            <input type="datetime-local" id="inputArrivalTime" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputSeats">Available Seats <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-chair"></i>
+                            <input type="number" id="inputSeats" min="0" max="500" placeholder="e.g. 150" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputPrice">Price (₹) <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                            <input type="number" id="inputPrice" step="0.01" min="0" placeholder="e.g. 5500.00" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="inputStatus">Flight Status <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-signal"></i>
+                            <select id="inputStatus" required>
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="Boarding">Boarding</option>
+                                <option value="Delayed">Delayed</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveFlight">
+                        <i class="fa-solid fa-check"></i>
+                        <span id="saveBtnText">Save Flight</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- API Telemetry / DW Transformation Trace Modal -->
+    <div class="modal-overlay" id="apiTraceModal">
+        <div class="modal-card glass wide">
+            <div class="modal-header">
+                <h3>
+                    <i class="fa-solid fa-code"></i>
+                    <span>System API Telemetry Trace</span>
+                </h3>
+                <button class="close-modal-btn" id="btnCloseTraceModal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="trace-grid">
+                    <div class="trace-box">
+                        <h4>RAML 1.0 JSON Request Payload</h4>
+                        <pre class="code-block" id="traceRequestPayload">--</pre>
+                    </div>
+                    <div class="trace-box">
+                        <h4>DataWeave 2.0 Mapping Output</h4>
+                        <pre class="code-block" id="traceResponsePayload">--</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

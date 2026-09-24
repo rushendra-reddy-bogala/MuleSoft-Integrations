@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <error-handler name="global-error-handler" doc:id="global-error-handler-config">
+
+        <!-- APIKit Bad Request -->
+        <on-error-propagate type="APIKIT:BAD_REQUEST" enableNotifications="true" logException="true">
+            <set-variable value="400" doc:name="Set HTTP Status 400" variableName="httpStatus" />
+            <set-variable value="Bad Request: Check request schema and parameter formatting." doc:name="Set Error Details" variableName="errorDetails" />
+            <ee:transform doc:name="Transform Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="ERROR" doc:name="Log Error" message='#[output application/json --- { timestamp: now(), logLevel: "ERROR", errorType: error.errorType.namespace ++ ":" ++ error.errorType.identifier, description: error.description }]' />
+        </on-error-propagate>
+
+        <!-- APIKit Not Found -->
+        <on-error-propagate type="APIKIT:NOT_FOUND" enableNotifications="true" logException="true">
+            <set-variable value="404" doc:name="Set HTTP Status 404" variableName="httpStatus" />
+            <set-variable value="The requested API resource endpoint does not exist." doc:name="Set Error Details" variableName="errorDetails" />
+            <ee:transform doc:name="Transform Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="ERROR" doc:name="Log Error" message='#[output application/json --- { timestamp: now(), logLevel: "ERROR", errorType: error.errorType.namespace ++ ":" ++ error.errorType.identifier, description: error.description }]' />
+        </on-error-propagate>
+
+        <!-- APIKit Method Not Allowed -->
+        <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED" enableNotifications="true" logException="true">
+            <set-variable value="405" doc:name="Set HTTP Status 405" variableName="httpStatus" />
+            <set-variable value="The HTTP method is not supported for this endpoint." doc:name="Set Error Details" variableName="errorDetails" />
+            <ee:transform doc:name="Transform Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="ERROR" doc:name="Log Error" message='#[output application/json --- { timestamp: now(), logLevel: "ERROR", errorType: error.errorType.namespace ++ ":" ++ error.errorType.identifier, description: error.description }]' />
+        </on-error-propagate>
+
+        <!-- APIKit Unsupported Media Type -->
+        <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE" enableNotifications="true" logException="true">
+            <set-variable value="415" doc:name="Set HTTP Status 415" variableName="httpStatus" />
+            <set-variable value="The requested Content-Type media type is not supported. Use application/json." doc:name="Set Error Details" variableName="errorDetails" />
+            <ee:transform doc:name="Transform Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="ERROR" doc:name="Log Error" message='#[output application/json --- { timestamp: now(), logLevel: "ERROR", errorType: error.errorType.namespace ++ ":" ++ error.errorType.identifier, description: error.description }]' />
+        </on-error-propagate>
+
+        <!-- Validation Error (Missing mandatory fields) -->
+        <on-error-propagate type="VALIDATION:BLANK_STRING, VALIDATION:NULL, VALIDATION:INVALID_BOOLEAN, VALIDATION:MULTIPLE" enableNotifications="true" logException="true">
+            <set-variable value="400" doc:name="Set HTTP Status 400" variableName="httpStatus" />
+            <set-variable value="#[error.description]" doc:name="Set Error Message" variableName="errorMessage" />
+            <set-variable value="Validation failed for mandatory request payload parameters (flightId, airline, source, destination)." doc:name="Set Error Details" variableName="errorDetails" />
+            <ee:transform doc:name="Transform Validation Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="WARN" doc:name="Log Validation Failure" message='#[output application/json --- { timestamp: now(), logLevel: "WARN", errorType: "VALIDATION_ERROR", description: error.description }]' />
+        </on-error-propagate>
+
+        <!-- Database Connectivity Error -->
+        <on-error-propagate type="DB:CONNECTIVITY" enableNotifications="true" logException="true">
+            <set-variable value="503" doc:name="Set HTTP Status 503" variableName="httpStatus" />
+            <set-variable value="Database service unavailable" doc:name="Set Error Message" variableName="errorMessage" />
+            <set-variable value="Failed to establish connection with MySQL database server." doc:name="Set Error Details" variableName="errorDetails" />
+            <ee:transform doc:name="Transform DB Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="ERROR" doc:name="Log DB Connection Error" message='#[output application/json --- { timestamp: now(), logLevel: "ERROR", errorType: "DB:CONNECTIVITY", description: error.description }]' />
+        </on-error-propagate>
+
+        <!-- Database Query Execution / Syntax Error -->
+        <on-error-propagate type="DB:QUERY_EXECUTION, DB:BAD_SQL_SYNTAX" enableNotifications="true" logException="true">
+            <set-variable value="500" doc:name="Set HTTP Status 500" variableName="httpStatus" />
+            <set-variable value="Database query execution error" doc:name="Set Error Message" variableName="errorMessage" />
+            <set-variable value="#[error.detailedDescription]" doc:name="Set Error Details" variableName="errorDetails" />
+            <ee:transform doc:name="Transform DB Query Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="ERROR" doc:name="Log DB Query Error" message='#[output application/json --- { timestamp: now(), logLevel: "ERROR", errorType: error.errorType.namespace ++ ":" ++ error.errorType.identifier, description: error.description }]' />
+        </on-error-propagate>
+
+        <!-- Custom Flight Not Found -->
+        <on-error-propagate type="FLIGHT:NOT_FOUND" enableNotifications="true" logException="true">
+            <set-variable value="404" doc:name="Set HTTP Status 404" variableName="httpStatus" />
+            <ee:transform doc:name="Transform Custom 404 Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="INFO" doc:name="Log Flight Not Found" message='#[output application/json --- { timestamp: now(), logLevel: "INFO", message: "Flight record not found" }]' />
+        </on-error-propagate>
+
+        <!-- Any Other Unhandled Error -->
+        <on-error-propagate type="ANY" enableNotifications="true" logException="true">
+            <set-variable value="500" doc:name="Set HTTP Status 500" variableName="httpStatus" />
+            <set-variable value="Internal server processing error" doc:name="Set Error Message" variableName="errorMessage" />
+            <set-variable value="#[error.description default 'An unexpected error occurred.']" doc:name="Set Error Details" variableName="errorDetails" />
+            <ee:transform doc:name="Transform General Error Payload">
+                <ee:message>
+                    <ee:set-payload resource="dwl/error-response.dwl" />
+                </ee:message>
+            </ee:transform>
+            <logger level="ERROR" doc:name="Log Unexpected Error" message='#[output application/json --- { timestamp: now(), logLevel: "ERROR", errorType: "ANY", description: error.description }]' />
+        </on-error-propagate>
+
+    </error-handler>
+
+</mule>
