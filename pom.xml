@@ -42,6 +42,9 @@
                         <muleVersion>${app.runtime}</muleVersion>
                         <username>${anypoint.username}</username>
                         <password>${anypoint.password}</password>
+                        <connectedAppClientId>${anypoint.clientId}</connectedAppClientId>
+                        <connectedAppClientSecret>${anypoint.clientSecret}</connectedAppClientSecret>
+                        <connectedAppGrantType>client_credentials</connectedAppGrantType>
                         <applicationName>${app.name}</applicationName>
                         <replicas>1</replicas>
                         <vCores>0.1</vCores>
