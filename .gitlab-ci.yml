@@ -26,7 +26,7 @@ build_and_package:
       - target/*.jar
     expire_in: 1 week
 
-# Stage 2: Deploy to Anypoint CloudHub 2.0 (Manual or Automatic on main)
+# Stage 2: Deploy to Anypoint CloudHub 2.0 (Triggered on main branch)
 deploy_cloudhub:
   stage: deploy
   only:
@@ -36,10 +36,12 @@ deploy_cloudhub:
     - echo "Deploying application to Anypoint CloudHub 2.0..."
     - |
       mvn clean deploy -DmuleDeploy \
-        -Denv=prod \
+        -Denv=Sandbox \
         -Dtarget="Cloudhub-US-East-1" \
+        -Danypoint.clientId="$ANYPOINT_CLIENT_ID" \
+        -Danypoint.clientSecret="$ANYPOINT_CLIENT_SECRET" \
         -Danypoint.username="$ANYPOINT_USERNAME" \
         -Danypoint.password="$ANYPOINT_PASSWORD" \
-        -Dapp.name="flight-management-system-prod" \
+        -Dapp.name="flight-management-system-dev" \
         -Dencryption.key="$ENCRYPTION_KEY" \
         -DskipTests

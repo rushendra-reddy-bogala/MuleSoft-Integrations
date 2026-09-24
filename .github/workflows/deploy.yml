@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Build & MUnit Test
+    name: Build & Package Artifact
     runs-on: ubuntu-latest
 
     steps:
@@ -58,15 +58,19 @@ jobs:
 
       - name: Deploy to Anypoint CloudHub 2.0
         env:
+          ANYPOINT_CLIENT_ID: ${{ secrets.ANYPOINT_CLIENT_ID }}
+          ANYPOINT_CLIENT_SECRET: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
           ANYPOINT_USERNAME: ${{ secrets.ANYPOINT_USERNAME }}
           ANYPOINT_PASSWORD: ${{ secrets.ANYPOINT_PASSWORD }}
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
           mvn clean deploy -DmuleDeploy \
-            -Denv=prod \
+            -Denv=Sandbox \
             -Dtarget="Cloudhub-US-East-1" \
+            -Danypoint.clientId="$ANYPOINT_CLIENT_ID" \
+            -Danypoint.clientSecret="$ANYPOINT_CLIENT_SECRET" \
             -Danypoint.username="$ANYPOINT_USERNAME" \
             -Danypoint.password="$ANYPOINT_PASSWORD" \
-            -Dapp.name="flight-management-system-prod" \
+            -Dapp.name="flight-management-system-dev" \
             -Dencryption.key="$ENCRYPTION_KEY" \
             -DskipTests

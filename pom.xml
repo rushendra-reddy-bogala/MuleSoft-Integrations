@@ -19,6 +19,14 @@
         <mule.maven.plugin.version>4.1.0</mule.maven.plugin.version>
         <munit.version>3.0.0</munit.version>
         <java.version>17</java.version>
+        <env>Sandbox</env>
+        <target>Cloudhub-US-East-1</target>
+        <app.name>flight-management-system-dev</app.name>
+        <encryption.key>MuleSecretKey123</encryption.key>
+        <anypoint.username></anypoint.username>
+        <anypoint.password></anypoint.password>
+        <anypoint.clientId></anypoint.clientId>
+        <anypoint.clientSecret></anypoint.clientSecret>
     </properties>
 
     <build>
